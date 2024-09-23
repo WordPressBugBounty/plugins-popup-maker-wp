@@ -1,0 +1,173 @@
+.sgpm-menu-item-notification-badge {
+	display: inline-block;
+	vertical-align: top;
+	box-sizing: border-box;
+	margin: 0px 0 0px 6px;
+	padding: 1px 1px 0 0;
+	min-width: 20px;
+	height: 20px;
+	border-radius: 100px;
+	background-color:
+	#ca4a1f;
+	color:
+	#fff;
+	font-size: 12px;
+	line-height: 1.5;
+	text-align: center;
+	z-index: 26;
+}
+
+div.sgpm-notification-shade-wrapper {
+	background-color: #fdfdfd;
+	border: 1px solid #e5e5e5;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
+	margin: 20px 10px 0 20px;
+	padding: 0 20px 25px 20px;
+}
+
+div.sgpm-notification-shade-header {
+	display: flex;
+}
+
+div.sgpm-notifications-container {
+	padding-left: 15px;
+	padding-right: 15px;
+	border: 1px solid rgba(0, 0, 0, .08);
+	background-color: rgba(0, 0, 0, .02);
+	max-height: 450px;
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+div.sgpm-notification-shade-header > h3.sgpm-notification-shade-title {
+	flex: 1;
+	padding-top: 8px;
+}
+
+div.sgpm-notification-shade-header > h3.sgpm-notification-shade-buttons {
+	display: flex;
+	padding-top: 8px;
+}
+
+svg.sgpm-notification-bell-icon {
+	fill: #3598dc;
+}
+
+div.sgpm-bell-icon-container {
+	display: inline-block;
+	animation: changing-scale-of-element linear .8s;
+}
+
+@keyframes changing-scale-of-element {
+	0% {
+		-webkit-transform: scale(1);
+		-moz-transform: scale(1);
+		-o-transform: scale(1);
+		transform: scale(1);
+	}
+	25% {
+		-webkit-transform: scale(1);
+		-moz-transform: scale(2);
+		-o-transform: scale(2);
+		transform: scale(2);
+	}
+	50% {
+		-webkit-transform: scale(2);
+		-moz-transform: scale(2);
+		-o-transform: scale(2);
+		transform: scale(2);
+	}
+	75% {
+		-webkit-transform: scale(2);
+		-moz-transform: scale(2);
+		-o-transform: scale(2);
+		transform: scale(2);
+	}
+	100% {
+		-webkit-transform: scale(1);
+		-moz-transform: scale(1);
+		-o-transform: scale(1);
+		transform: scale(1);
+	}
+}
+
+svg.sgpm-bell-ring-animation {
+	animation: bell-ringing linear .2s 4 backwards;
+}
+
+span.sgpm-action-icon-container {
+	margin-left: 15px;
+	cursor: pointer;
+}
+
+@keyframes bell-ringing {
+	0% { transform: rotate(0deg); }
+	25% { transform: rotate(-20deg); }
+	50% { transform: rotate(0deg); }
+	75% { transform: rotate(20deg); }
+	100% { transform: rotate(0deg);}
+}
+
+svg.sgpm-clear-all-notifications:hover {
+	fill: rgba(0, 0, 0, .3);
+	transition: .2s;
+}
+
+div.sgpm-notification-body {
+	position: relative;
+	background-color: #fff;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+	margin-top: 15px;
+	margin-bottom: 15px;
+	border: 1px solid rgba(0, 0, 0, .10);
+	padding: 0 25px;
+}
+
+div.sgpm-notification-header {
+	display: flex;
+	border-bottom: 1px solid rgba(0, 0, 0, .08);
+}
+
+div.sgpm-notification-header > h3.sgpm-notification-title {
+	flex: 1;
+	padding-top: 8px;
+}
+
+div.sgpm-notification-header > h3.sgpm-notification-buttons {
+	display: flex;
+	padding-top: 8px;
+}
+
+div.sgpm-notification-text {
+	margin-top: 15px;
+	padding-bottom: 15px;
+	border-bottom: 1px solid rgba(0, 0, 0, .08);
+	text-align: justify;
+}
+
+div.sgpm-notification-footer {
+	margin-top: 10px;
+	padding-bottom: 25px;
+}
+
+a.sgpm-info-link {
+	margin-right: 20px;
+	text-decoration: none !important;
+}
+
+svg.sgpm-close-notifications:hover {
+	fill: rgba(0, 0, 0, .3);
+	transition: .2s;
+}
+
+.sgpm-animation-slide-right {
+    animation: move-notifaction-right linear .6s;
+}
+
+@keyframes move-notifaction-right {
+	0% { left: 0; opacity: 1; height: 100%; }
+	25% { left: 250px; opacity: 0.1; height: 0; }
+	50% { left: 350px }
+	75% { left: 380px }
+	100% { left: 400px }
+}
