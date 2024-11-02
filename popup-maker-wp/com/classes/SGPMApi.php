@@ -141,9 +141,7 @@ class SGPMApi
 
 	public function sanitize($optionsKey)
 	{
-		// Verify nonce
-		if ( ! isset($_POST[$optionsKey]) || ! wp_verify_nonce($_POST[$optionsKey], $optionsKey . 'action') ) {
-			// Nonce verification failed
+		if ( ! isset($_POST[$optionsKey]) ) {
 			return ''; // Or handle the error appropriately
 		}
 		return sanitize_text_field($_POST[$optionsKey]);
