@@ -2,6 +2,13 @@
 
 class SGPMApi
 {
+	/**
+	 * Reference to base plugin class.
+	 *
+	 * @var SGPMBase
+	 */
+	protected $base;
+
 	public function __construct()
 	{
 		$this->set();

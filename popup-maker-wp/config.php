@@ -9,7 +9,7 @@ define('SGPM_ADMIN_URL', admin_url());
 define('SGPM_VIEW', SGPM_PATH.'com'.SGPM_DS.'view'.SGPM_DS);
 define('SGPM_CLASSES', SGPM_PATH.'com'.SGPM_DS.'classes'.SGPM_DS);
 define('SGPM_NOTIFICATIONS_SOURCE', SGPM_PATH.'public'.SGPM_DS.'notifications'.SGPM_DS);
-define('SGPM_VERSION', '1.4.1');
+define('SGPM_VERSION', '1.4.4');
 define('SGPM_SERVICE_URL', 'https://popupmaker.com/');
 define('SGPM_NOTIFICATIONS_API_URL', SGPM_SERVICE_URL.'api/v1/notificationsPublic/');
 define('SGPM_POPUP_TEXT_DOMAIN', 'sgpmPopupMaker');

@@ -2,6 +2,13 @@
 
 class SGPMPage
 {
+	/**
+	 * Reference to base plugin class.
+	 *
+	 * @var SGPMBase
+	 */
+	protected $base;
+
 	public function __construct()
 	{
 		$this->set();
@@ -43,9 +50,17 @@ class SGPMPage
 			wp_die('Security check fail');
 		}
 
-		$selectedUserRoles = array_map( 'sanitize_text_field', $_POST['sgpm-selected-user-roles'] );
-
+		$selectedUserRoles = isset($_POST['sgpm-selected-user-roles']) ? array_map( 'sanitize_text_field', $_POST['sgpm-selected-user-roles'] ) : array();
 		update_option('sgpm_popup_maker_user_roles', $selectedUserRoles);
+
+		// Save custom allowed tags
+		$customAllowedTags = isset($_POST['sgpm-custom-allowed-tags']) ? sanitize_textarea_field($_POST['sgpm-custom-allowed-tags']) : '';
+		update_option('sgpm_popup_maker_custom_allowed_tags', $customAllowedTags);
+
+		// Save custom allowed attributes
+		$customAllowedAttrs = isset($_POST['sgpm-custom-allowed-attrs']) ? sanitize_textarea_field($_POST['sgpm-custom-allowed-attrs']) : '';
+		update_option('sgpm_popup_maker_custom_allowed_attrs', $customAllowedAttrs);
+
 		wp_redirect(SGPM_ADMIN_URL."admin.php?page=popup-maker-api-settings");
 	}
 
@@ -216,43 +231,43 @@ class SGPMPage
 			'multiple' => array()
 		);
 
-		$allowedposttags['select']   = $allowed_atts;
-		$allowedposttags['optgroup'] = $allowed_atts;
-		$allowedposttags['option']   = $allowed_atts;
-		$allowedposttags['form']     = $allowed_atts;
-		$allowedposttags['label']    = $allowed_atts;
-		$allowedposttags['input']    = $allowed_atts;
-		$allowedposttags['textarea'] = $allowed_atts;
-		$allowedposttags['iframe']   = $allowed_atts;
-		$allowedposttags['script']   = $allowed_atts;
-		$allowedposttags['style']    = $allowed_atts;
-		$allowedposttags['strong']   = $allowed_atts;
-		$allowedposttags['small']    = $allowed_atts;
-		$allowedposttags['table']    = $allowed_atts;
-		$allowedposttags['span']     = $allowed_atts;
-		$allowedposttags['abbr']     = $allowed_atts;
-		$allowedposttags['code']     = $allowed_atts;
-		$allowedposttags['pre']      = $allowed_atts;
-		$allowedposttags['div']      = $allowed_atts;
-		$allowedposttags['img']      = $allowed_atts;
-		$allowedposttags['h1']       = $allowed_atts;
-		$allowedposttags['h2']       = $allowed_atts;
-		$allowedposttags['h3']       = $allowed_atts;
-		$allowedposttags['h4']       = $allowed_atts;
-		$allowedposttags['h5']       = $allowed_atts;
-		$allowedposttags['h6']       = $allowed_atts;
-		$allowedposttags['ol']       = $allowed_atts;
-		$allowedposttags['ul']       = $allowed_atts;
-		$allowedposttags['li']       = $allowed_atts;
-		$allowedposttags['em']       = $allowed_atts;
-		$allowedposttags['hr']       = $allowed_atts;
-		$allowedposttags['br']       = $allowed_atts;
-		$allowedposttags['tr']       = $allowed_atts;
-		$allowedposttags['td']       = $allowed_atts;
-		$allowedposttags['p']        = $allowed_atts;
-		$allowedposttags['a']        = $allowed_atts;
-		$allowedposttags['b']        = $allowed_atts;
-		$allowedposttags['i']        = $allowed_atts;
+		// Tags de base
+		$base_tags = array(
+			'select', 'optgroup', 'option', 'form', 'label', 'input', 'textarea', 
+			'iframe', 'script', 'style', 'strong', 'small', 'table', 'span', 
+			'abbr', 'code', 'pre', 'div', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 
+			'h6', 'ol', 'ul', 'li', 'em', 'hr', 'br', 'tr', 'td', 'p', 'a', 'b', 'i'
+		);
+
+		// Appliquer les tags de base
+		foreach ($base_tags as $tag) {
+			$allowedposttags[$tag] = $allowed_atts;
+		}
+
+		// Get and validate custom allowed tags
+		$customAllowedTags = get_option('sgpm_popup_maker_custom_allowed_tags', '');
+		$customAllowedAttrs = get_option('sgpm_popup_maker_custom_allowed_attrs', '');
+
+		$validCustomTags = SGPMHelper::validateCustomTags($customAllowedTags);
+		$validCustomAttrs = SGPMHelper::validateCustomAttrs($customAllowedAttrs);
+
+		// Apply validated custom tags
+		foreach ($validCustomTags as $tag) {
+			$allowedposttags[$tag] = $allowed_atts;
+		}
+
+		// Apply validated custom attributes
+		if (!empty($validCustomAttrs)) {
+			$customAttrsArray = array();
+			foreach ($validCustomAttrs as $attr) {
+				$customAttrsArray[$attr] = array();
+			}
+			
+			// Apply custom attributes to all tags
+			foreach ($allowedposttags as $tag => $attrs) {
+				$allowedposttags[$tag] = array_merge($attrs, $customAttrsArray);
+			}
+		}
 
 		return $allowedposttags;
 	}

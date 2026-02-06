@@ -2,6 +2,20 @@
 
 class SGPMMenu
 {
+	/**
+	 * Reference to base plugin class.
+	 *
+	 * @var SGPMBase
+	 */
+	protected $base;
+
+	/**
+	 * Admin page hook identifier.
+	 *
+	 * @var string|null
+	 */
+	protected $hook;
+
 	public function __construct()
 	{
 		$this->set();

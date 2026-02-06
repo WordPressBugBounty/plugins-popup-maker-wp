@@ -2,6 +2,8 @@
 
 class SGPMCondition
 {
+	public $conditions;
+
 	public function __construct($targetData)
 	{
 		if (!empty($targetData)) {

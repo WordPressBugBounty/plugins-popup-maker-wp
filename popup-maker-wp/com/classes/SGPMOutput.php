@@ -2,6 +2,13 @@
 
 class SGPMOutput
 {
+	/**
+	 * Reference to base plugin class.
+	 *
+	 * @var SGPMBase
+	 */
+	protected $base;
+
 	public function __construct()
 	{
 		$this->set();
@@ -52,12 +59,9 @@ class SGPMOutput
 		    wp_localize_script( 'sgpm-default-embed-code', 'sgpmPopupHashIds',
 		        $popupHashIds
 		    );
-		    wp_localize_script( 'sgpm-default-embed-code', 'SGPM_SERVICE_URL',
-		        SGPM_SERVICE_URL
-		    );
-			wp_localize_script( 'sgpm-default-embed-code', 'SGPM_ASSETS_URL',
-				SGPM_ASSETS_URL
-		    );
+		    // Use wp_add_inline_script for simple string values (WordPress 5.7+ requirement)
+		    wp_add_inline_script( 'sgpm-default-embed-code', 'var SGPM_SERVICE_URL = "' . esc_js( SGPM_SERVICE_URL ) . '";', 'before' );
+			wp_add_inline_script( 'sgpm-default-embed-code', 'var SGPM_ASSETS_URL = "' . esc_js( SGPM_ASSETS_URL ) . '";', 'before' );
 
 		}
 

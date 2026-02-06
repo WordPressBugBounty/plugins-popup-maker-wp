@@ -48,6 +48,34 @@ class SGPMBase
 	public $notificationEngine = null;
 
 	/**
+	 * Helper utilities.
+	 *
+	 * @var SGPMHelper|null
+	 */
+	protected $helper = null;
+
+	/**
+	 * Menu handler instance.
+	 *
+	 * @var SGPMMenu|null
+	 */
+	protected $menu = null;
+
+	/**
+	 * API handler instance.
+	 *
+	 * @var SGPMApi|null
+	 */
+	protected $api = null;
+
+	/**
+	 * Front-end output handler.
+	 *
+	 * @var SGPMOutput|null
+	 */
+	protected $output = null;
+
+	/**
 	 * Loads the plugin into WordPress.
 	 *
 	 * @since 1.0.0
@@ -84,6 +112,7 @@ class SGPMBase
 		/* temprory fix : Delete old crons */
 		wp_clear_scheduled_hook("sgpm_fetch_new_notifications");
 		wp_unschedule_event(time(), 'sgpm_check_for_new_notifications_every_6_hours');
+
 	}
 
 	public function adminStyles()
@@ -268,6 +297,9 @@ class SGPMBase
 		delete_option('sgpm_popup_maker_dismiss_review_notice');
 		delete_option('sgpm_popup_maker_notification_engine_source');
 		delete_option('sgpm_popup_maker_dismissed_notifacions');
+		delete_option('sgpm_popup_maker_user_roles');
+		delete_option('sgpm_popup_maker_custom_allowed_tags');
+		delete_option('sgpm_popup_maker_custom_allowed_attrs');
 
 		/* temprory fix : Delete old crons */
 		wp_clear_scheduled_hook("sgpm_fetch_new_notifications");
@@ -290,6 +322,31 @@ class SGPMBase
 	 *
 	 * @return SGPMBase
 	 */
+	/**
+	 * Start application statistics tracking
+	 *
+	 * Use the WISDOM Tracking plugin to track
+	 * application usage.
+	 * https://wisdomplugin.com/support/#getting-started
+	 *
+	 * Filter: plugins_loaded
+	 *
+	 * @since  1.4.4
+	 * @return void
+	 */
+	public function popup_maker_start_plugin_tracking() {
+		if (class_exists('Plugin_Usage_Tracker')) {
+			$wisdom = new Plugin_Usage_Tracker(
+				SGPM_PATH.'popup-maker-api.php',
+				'https://tracking.getawesomesupport.com',
+				array(),
+				true,
+				true,
+				1
+			);
+		}
+	}
+
 	public static function getInstance()
 	{
 		if (!isset( self::$instance ) && !(self::$instance instanceof SGPMBase)) {

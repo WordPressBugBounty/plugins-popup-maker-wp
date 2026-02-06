@@ -31,6 +31,86 @@ jQuery(document).ready(function($)
 
 
 	$('.sgpm-select-user-roles-multiple').select2();
+
+	// Custom tags validation
+	$('#sgpm-custom-allowed-tags, #sgpm-custom-allowed-attrs').on('input', function() {
+		var $this = $(this);
+		var value = $this.val();
+		var isValid = true;
+		var errorMessage = '';
+
+		// Clean and validate tags/attributes
+		if (value.trim() !== '') {
+			var items = value.split(',').map(function(item) {
+				return item.trim();
+			});
+
+			for (var i = 0; i < items.length; i++) {
+				var item = items[i];
+				if (item !== '') {
+					// Check that the element starts with a letter and contains only valid characters
+					if (!/^[a-zA-Z][a-zA-Z0-9\-_]*$/.test(item)) {
+						isValid = false;
+						errorMessage = 'Tags/attributes must start with a letter and contain only letters, numbers, dashes and underscores.';
+						break;
+					}
+				}
+			}
+		}
+
+		// Show/hide errors
+		$this.removeClass('sgpm-error');
+		$this.next('.sgpm-validation-error').remove();
+
+		if (!isValid) {
+			$this.addClass('sgpm-error');
+			$this.after('<div class="sgpm-validation-error" style="color: #d63638; font-size: 12px; margin-top: 5px;">' + errorMessage + '</div>');
+		}
+	});
+
+	// Form validation before submission
+	$('#sgpm-form-general-settings-save').on('submit', function(e) {
+		var isValid = true;
+		var $tagsField = $('#sgpm-custom-allowed-tags');
+		var $attrsField = $('#sgpm-custom-allowed-attrs');
+
+		// Validate tags
+		if ($tagsField.val().trim() !== '') {
+			var tags = $tagsField.val().split(',').map(function(item) {
+				return item.trim();
+			});
+
+			for (var i = 0; i < tags.length; i++) {
+				var tag = tags[i];
+				if (tag !== '' && !/^[a-zA-Z][a-zA-Z0-9\-_]*$/.test(tag)) {
+					isValid = false;
+					$tagsField.addClass('sgpm-error');
+					break;
+				}
+			}
+		}
+
+		// Validate attributes
+		if ($attrsField.val().trim() !== '') {
+			var attrs = $attrsField.val().split(',').map(function(item) {
+				return item.trim();
+			});
+
+			for (var i = 0; i < attrs.length; i++) {
+				var attr = attrs[i];
+				if (attr !== '' && !/^[a-zA-Z][a-zA-Z0-9\-_:]*$/.test(attr)) {
+					isValid = false;
+					$attrsField.addClass('sgpm-error');
+					break;
+				}
+			}
+		}
+
+		if (!isValid) {
+			e.preventDefault();
+			alert('Please correct validation errors before saving.');
+		}
+	});
 });
 
 function clearAllNotifications()

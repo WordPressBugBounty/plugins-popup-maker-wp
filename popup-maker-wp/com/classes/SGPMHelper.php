@@ -353,4 +353,60 @@ class SGPMHelper
 
 		return ! $include_total ? $results['items'] : $results;
 	}
+
+	/**
+	 * Validates custom HTML tags
+	 *
+	 * @param string $tagsString String of tags separated by commas
+	 * @return array Valid tags
+	 */
+	public static function validateCustomTags($tagsString)
+	{
+		if (empty($tagsString)) {
+			return array();
+		}
+
+		$tags = array_map('trim', explode(',', $tagsString));
+		$validTags = array();
+
+		foreach ($tags as $tag) {
+			// Clean the tag
+			$tag = preg_replace('/[^a-zA-Z0-9\-_]/', '', $tag);
+			
+			// Check that the tag is not empty and starts with a letter
+			if (!empty($tag) && preg_match('/^[a-zA-Z]/', $tag)) {
+				$validTags[] = strtolower($tag);
+			}
+		}
+
+		return array_unique($validTags);
+	}
+
+	/**
+	 * Validates custom HTML attributes
+	 *
+	 * @param string $attrsString String of attributes separated by commas
+	 * @return array Valid attributes
+	 */
+	public static function validateCustomAttrs($attrsString)
+	{
+		if (empty($attrsString)) {
+			return array();
+		}
+
+		$attrs = array_map('trim', explode(',', $attrsString));
+		$validAttrs = array();
+
+		foreach ($attrs as $attr) {
+			// Clean the attribute
+			$attr = preg_replace('/[^a-zA-Z0-9\-_:]/', '', $attr);
+			
+			// Check that the attribute is not empty and starts with a letter
+			if (!empty($attr) && preg_match('/^[a-zA-Z]/', $attr)) {
+				$validAttrs[] = strtolower($attr);
+			}
+		}
+
+		return array_unique($validAttrs);
+	}
 }

@@ -5,8 +5,8 @@ Author: Popup Maker
 Donate link: https://popupmaker.com
 Tags: popup, popup maker, exit popup, subscription popup, video popup
 Requires at least: 3.8
-Tested up to: 6.6
-Stable tag: 1.4.1
+Tested up to: 6.7.1
+Stable tag: 1.4.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -164,6 +164,15 @@ It allows you to decide on which devices you would like to show the popup: Show 
 5. Popup Maker Screen 5
 
 == Changelog ==
+
+= 1.4.4 =
+* [Fix] * Update Rules and Improve Performance for Plugin Repository.
+* [New] * Activation events are now collected only upon plugin activation.
+
+= 1.4.3 =
+* [New] Deactivation reasons are now collected only when the plugin is deactivated.
+* [New] Added custom HTML tags support for popup content
+* [New] Added custom HTML attributes support for enhanced popup customization
 
 = 1.4.1 =
 * [Fix] * Connect to Popup Maker API.

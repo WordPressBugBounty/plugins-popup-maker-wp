@@ -1845,22 +1845,22 @@ function SGPMPopup(config) {
       contents +
       "</div>";
 
-    // Création des éléments nécessaires
+    // Create necessary elements
     contentDiv.appendChild(closeButtonOverlay);
     contentDiv.appendChild(closeButtonImage);
     contentDiv.appendChild(mainDiv);
 
-    // Affichage du branding si nécessaire
+    // Display branding if necessary
     if (displayBranding == "on" || displayBranding.enabled == "on") {
       var brandingPanel = SGP.getBrandingPanel(contentBox, displayBranding);
       contentDiv.appendChild(brandingPanel);
     }
 
-    // Ajout des éléments au DOM
+    // Add elements to DOM
     DIV.appendChild(contentDiv);
     document.body.appendChild(DIV);
 
-    // Initialisation des comportements et événements
+    // Initialize behaviors and events
     initPopupFromPopup();
     isInited = true;
     setOpenEvents();
