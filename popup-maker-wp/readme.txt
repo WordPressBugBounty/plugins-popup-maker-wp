@@ -5,8 +5,8 @@ Author: Popup Maker
 Donate link: https://popupmaker.com
 Tags: popup, popup maker, exit popup, subscription popup, video popup
 Requires at least: 3.8
-Tested up to: 6.7.1
-Stable tag: 1.4.4
+Tested up to: 7.0
+Stable tag: 1.4.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -164,6 +164,12 @@ It allows you to decide on which devices you would like to show the popup: Show 
 5. Popup Maker Screen 5
 
 == Changelog ==
+
+= 1.4.5 =
+* [Fix] Usage tracking now requires explicit administrator opt-in before any data is sent to Popup Maker.
+* [Fix] Removed automatic usage data collection on plugin activation and deactivation without consent.
+* [New] Added an admin notice explaining optional usage tracking, email updates, and discount offer, with links to our data collection and privacy policy pages.
+* [Fix] Reduced optional telemetry payload by removing unnecessary server and file path details.
 
 = 1.4.4 =
 * [Fix] * Update Rules and Improve Performance for Plugin Repository.

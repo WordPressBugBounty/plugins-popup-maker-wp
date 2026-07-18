@@ -84,7 +84,21 @@ if( ! class_exists( 'Plugin_Usage_Tracker') ) {
 		}
 
 		public function init() {
-			// Deactivation - Keep only data collection during deactivation
+			if ( $this->marketing == 3 ) {
+				$this->set_can_collect_email( true, $this->plugin_name );
+			}
+
+			if ( ! $this->require_optin ) {
+				$this->set_can_collect_email( true, $this->plugin_name );
+				$this->set_is_tracking_allowed( true );
+				$this->update_block_notice();
+			}
+
+			add_action( 'admin_init', array( $this, 'handle_optin_response' ) );
+			add_action( 'admin_notices', array( $this, 'optin_notice' ) );
+			add_action( 'admin_notices', array( $this, 'marketing_notice' ) );
+			add_action( 'put_do_weekly_action', array( $this, 'do_tracking' ) );
+
 			add_filter( 'plugin_action_links_' . plugin_basename( $this->plugin_file ), array( $this, 'filter_action_links' ) );
 			add_action( 'admin_footer-plugins.php', array( $this, 'goodbye_ajax' ) );
 			add_action( 'wp_ajax_goodbye_form', array( $this, 'goodbye_form_callback' ) );
@@ -102,6 +116,10 @@ if( ! class_exists( 'Plugin_Usage_Tracker') ) {
 
 			// If the home site hasn't been defined, we just drop out. Nothing much we can do.
 			if ( ! $this->home_url ) {
+				return;
+			}
+
+			if ( ! $this->get_is_tracking_allowed() ) {
 				return;
 			}
 
@@ -163,7 +181,6 @@ if( ! class_exists( 'Plugin_Usage_Tracker') ) {
 				'wisdom_version'	=> $this->wisdom_version,
 				'php_version'			=> phpversion(),
 				'multisite'				=> is_multisite(),
-				'file_location'		=> __FILE__,
 				'product_type'		=> esc_html( $this->what_am_i )
 			);
 
@@ -172,8 +189,6 @@ if( ! class_exists( 'Plugin_Usage_Tracker') ) {
 				$body['email'] = $this->get_admin_email();
 			}
 			$body['marketing_method'] = $this->marketing;
-
-			$body['server'] = isset( $_SERVER['SERVER_SOFTWARE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['SERVER_SOFTWARE'] ) ) : '';
 
 			// Retrieve current plugin information
 			if( ! function_exists( 'get_plugins' ) ) {
@@ -254,11 +269,19 @@ if( ! class_exists( 'Plugin_Usage_Tracker') ) {
 		 * @since 1.0.0
 		 */
 		public function schedule_tracking() {
-			$body = $this->get_data();
-			$body['status'] = 'Activated'; // Never translated
-			$body['activated_date'] = time();
+			if ( ! $this->get_is_tracking_allowed() ) {
+				// Ensure the opt-in notice can appear after activation/reactivation.
+				$block_notice = get_option( 'wisdom_block_notice', array() );
+				if ( is_array( $block_notice ) && isset( $block_notice[ $this->plugin_name ] ) ) {
+					unset( $block_notice[ $this->plugin_name ] );
+					update_option( 'wisdom_block_notice', $block_notice );
+				}
+				return;
+			}
 
-			$this->send_data( $body );
+			if ( ! wp_next_scheduled( 'put_do_weekly_action' ) ) {
+				wp_schedule_event( time(), 'daily', 'put_do_weekly_action' );
+			}
 		}
 
 		/**
@@ -267,6 +290,11 @@ if( ! class_exists( 'Plugin_Usage_Tracker') ) {
 		 * @since 1.0.0
 		 */
 		public function deactivate_this_plugin() {
+			if ( ! $this->get_is_tracking_allowed() ) {
+				wp_clear_scheduled_hook( 'put_do_weekly_action' );
+				return;
+			}
+
 			$body = $this->get_data();
 			$body['status'] = 'Deactivated'; // Never translated
 			$body['deactivated_date'] = time();
@@ -321,6 +349,289 @@ if( ! class_exists( 'Plugin_Usage_Tracker') ) {
 		}
 
 		/**
+		 * Is tracking allowed?
+		 *
+		 * @since 1.0.0
+		 */
+		public function get_is_tracking_allowed() {
+			if ( $this->has_user_opted_out() ) {
+				$this->set_is_tracking_allowed( false, $this->plugin_name );
+				return false;
+			}
+
+			if ( $this->what_am_i == 'theme' ) {
+				return (bool) get_theme_mod( 'wisdom-allow-tracking', 0 );
+			}
+
+			$allow_tracking = get_option( 'wisdom_allow_tracking' );
+			return isset( $allow_tracking[ $this->plugin_name ] );
+		}
+
+		/**
+		 * Set if tracking is allowed.
+		 *
+		 * @since 1.0.0
+		 * @param bool   $is_allowed Whether tracking is allowed.
+		 * @param string $plugin     Plugin slug.
+		 */
+		public function set_is_tracking_allowed( $is_allowed, $plugin = null ) {
+			if ( empty( $plugin ) ) {
+				$plugin = $this->plugin_name;
+			}
+
+			if ( $this->what_am_i == 'theme' ) {
+				set_theme_mod( 'wisdom-allow-tracking', $is_allowed && ! $this->has_user_opted_out() ? 1 : 0 );
+				return;
+			}
+
+			$allow_tracking = get_option( 'wisdom_allow_tracking', array() );
+			if ( ! is_array( $allow_tracking ) ) {
+				$allow_tracking = array();
+			}
+
+			if ( $this->has_user_opted_out() || ! $is_allowed ) {
+				unset( $allow_tracking[ $plugin ] );
+			} elseif ( $is_allowed || ! $this->require_optin ) {
+				$allow_tracking[ $plugin ] = $plugin;
+			}
+
+			update_option( 'wisdom_allow_tracking', $allow_tracking );
+		}
+
+		/**
+		 * Has the user opted out of allowing tracking?
+		 *
+		 * @since 1.1.0
+		 */
+		public function has_user_opted_out() {
+			if ( $this->what_am_i == 'theme' ) {
+				return ! get_theme_mod( 'wisdom-allow-tracking', 0 );
+			}
+
+			if ( ! empty( $this->options ) ) {
+				foreach ( $this->options as $option_name ) {
+					$options = get_option( $option_name );
+					if ( ! empty( $options['wisdom_opt_out'] ) ) {
+						return true;
+					}
+				}
+			}
+
+			return false;
+		}
+
+		/**
+		 * Record that the user has responded to the opt-in notice.
+		 *
+		 * @since 1.0.0
+		 * @param string $plugin Plugin slug.
+		 */
+		public function update_block_notice( $plugin = null ) {
+			if ( empty( $plugin ) ) {
+				$plugin = $this->plugin_name;
+			}
+
+			$block_notice = get_option( 'wisdom_block_notice', array() );
+			if ( ! is_array( $block_notice ) ) {
+				$block_notice = array();
+			}
+
+			$block_notice[ $plugin ] = $plugin;
+			update_option( 'wisdom_block_notice', $block_notice );
+		}
+
+		/**
+		 * Set if user has allowed us to collect their email address.
+		 *
+		 * @since 1.0.0
+		 * @param bool   $can_collect Whether collection is allowed.
+		 * @param string $plugin      Plugin slug.
+		 */
+		public function set_can_collect_email( $can_collect, $plugin = null ) {
+			if ( empty( $plugin ) ) {
+				$plugin = $this->plugin_name;
+			}
+
+			$collect_email = get_option( 'wisdom_collect_email', array() );
+			if ( ! is_array( $collect_email ) ) {
+				$collect_email = array();
+			}
+
+			if ( $can_collect ) {
+				$collect_email[ $plugin ] = $plugin;
+			} else {
+				unset( $collect_email[ $plugin ] );
+			}
+
+			update_option( 'wisdom_collect_email', $collect_email );
+		}
+
+		/**
+		 * Handle opt-in / opt-out responses from the admin notice.
+		 *
+		 * @since 1.4.4
+		 */
+		public function handle_optin_response() {
+			if ( ! current_user_can( 'manage_options' ) ) {
+				return;
+			}
+
+			if ( ! isset( $_GET['plugin'], $_GET['plugin_action'], $_GET['_wpnonce'] ) ) {
+				return;
+			}
+
+			$plugin = sanitize_text_field( wp_unslash( $_GET['plugin'] ) );
+			if ( $plugin !== $this->plugin_name ) {
+				return;
+			}
+
+			if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'wisdom_optin_' . $this->plugin_name ) ) {
+				return;
+			}
+
+			$action = sanitize_text_field( wp_unslash( $_GET['plugin_action'] ) );
+			if ( 'yes' === $action ) {
+				$this->set_is_tracking_allowed( true, $plugin );
+				if ( isset( $_GET['marketing_optin'] ) && 'yes' === sanitize_text_field( wp_unslash( $_GET['marketing_optin'] ) ) ) {
+					$this->set_can_collect_email( true, $plugin );
+				}
+				$this->schedule_tracking();
+				$this->do_tracking( true );
+			} else {
+				$this->set_is_tracking_allowed( false, $plugin );
+			}
+
+			$this->update_block_notice( $plugin );
+
+			$remove_args = array( 'plugin', 'plugin_action', 'marketing_optin', '_wpnonce' );
+			if ( 2 !== (int) $this->marketing || 'yes' !== $action ) {
+				$remove_args[] = 'marketing';
+			}
+
+			wp_safe_redirect( remove_query_arg( $remove_args ) );
+			exit;
+		}
+
+		/**
+		 * Display the admin notice to users to allow them to opt in.
+		 *
+		 * @since 1.0.0
+		 */
+		public function optin_notice() {
+			if ( ! $this->require_optin || $this->get_is_tracking_allowed() ) {
+				return;
+			}
+
+			$block_notice = get_option( 'wisdom_block_notice', array() );
+			if ( isset( $block_notice[ $this->plugin_name ] ) ) {
+				return;
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				return;
+			}
+
+			$plugin = $this->plugin_data();
+			$plugin_name = isset( $plugin['Name'] ) ? $plugin['Name'] : $this->plugin_name;
+			$nonce = wp_create_nonce( 'wisdom_optin_' . $this->plugin_name );
+
+			$yes_args = array(
+				'plugin'        => $this->plugin_name,
+				'plugin_action' => 'yes',
+				'_wpnonce'      => $nonce,
+			);
+
+			if ( 1 === (int) $this->marketing ) {
+				$yes_args['marketing_optin'] = 'yes';
+			} elseif ( 2 === (int) $this->marketing ) {
+				$yes_args['marketing'] = 'yes';
+			}
+
+			$url_yes = add_query_arg( $yes_args );
+			$url_no = add_query_arg(
+				array(
+					'plugin'        => $this->plugin_name,
+					'plugin_action' => 'no',
+					'_wpnonce'      => $nonce,
+				)
+			);
+
+			$notice_text = __( 'Popup Maker would like to collect anonymous usage data to help improve the plugin. We only collect WordPress environment and plugin settings — no sensitive data. Tracking is optional and requires your consent.', 'sgpmPopupMaker' );
+			$notice_text = apply_filters( 'wisdom_notice_text_' . esc_attr( $this->plugin_name ), $notice_text );
+			?>
+			<div class="notice notice-info updated put-dismiss-notice">
+				<p><strong><?php echo esc_html( $plugin_name ); ?></strong></p>
+				<p><?php echo esc_html( $notice_text ); ?></p>
+				<p>
+					<a href="<?php echo esc_url( $url_yes ); ?>" class="button-primary"><?php esc_html_e( 'Allow usage tracking', 'sgpmPopupMaker' ); ?></a>
+					<a href="<?php echo esc_url( $url_no ); ?>" class="button-secondary"><?php esc_html_e( 'No thanks', 'sgpmPopupMaker' ); ?></a>
+				</p>
+			</div>
+			<?php
+		}
+
+		/**
+		 * Display the marketing notice after tracking opt-in when enabled.
+		 *
+		 * @since 1.0.0
+		 */
+		public function marketing_notice() {
+			if ( ! current_user_can( 'manage_options' ) ) {
+				return;
+			}
+
+			if ( isset( $_GET['marketing_optin'], $_GET['plugin'], $_GET['_wpnonce'] ) ) {
+				$plugin = sanitize_text_field( wp_unslash( $_GET['plugin'] ) );
+				if ( $plugin !== $this->plugin_name ) {
+					return;
+				}
+				if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'wisdom_optin_' . $this->plugin_name ) ) {
+					return;
+				}
+				$marketing_optin = sanitize_text_field( wp_unslash( $_GET['marketing_optin'] ) );
+				$this->set_can_collect_email( 'yes' === $marketing_optin, $this->plugin_name );
+				$this->do_tracking( true );
+				return;
+			}
+
+			if ( ! isset( $_GET['marketing'] ) || 'yes' !== sanitize_text_field( wp_unslash( $_GET['marketing'] ) ) ) {
+				return;
+			}
+
+			$plugin = $this->plugin_data();
+			$plugin_name = isset( $plugin['Name'] ) ? $plugin['Name'] : $this->plugin_name;
+			$nonce = wp_create_nonce( 'wisdom_optin_' . $this->plugin_name );
+
+			$url_yes = add_query_arg(
+				array(
+					'plugin'          => $this->plugin_name,
+					'marketing_optin' => 'yes',
+					'_wpnonce'        => $nonce,
+				)
+			);
+			$url_no = add_query_arg(
+				array(
+					'plugin'          => $this->plugin_name,
+					'marketing_optin' => 'no',
+					'_wpnonce'        => $nonce,
+				)
+			);
+
+			$marketing_text = __( 'Thank you for opting in to usage tracking. Would you like to receive occasional news about Popup Maker, including new features and special offers?', 'sgpmPopupMaker' );
+			$marketing_text = apply_filters( 'wisdom_marketing_text_' . esc_attr( $this->plugin_name ), $marketing_text );
+			?>
+			<div class="notice notice-info updated put-dismiss-notice">
+				<p><strong><?php echo esc_html( $plugin_name ); ?></strong></p>
+				<p><?php echo esc_html( $marketing_text ); ?></p>
+				<p>
+					<a href="<?php echo esc_url( $url_yes ); ?>" class="button-secondary"><?php esc_html_e( 'Yes please', 'sgpmPopupMaker' ); ?></a>
+					<a href="<?php echo esc_url( $url_no ); ?>" class="button-secondary"><?php esc_html_e( 'No thank you', 'sgpmPopupMaker' ); ?></a>
+				</p>
+			</div>
+			<?php
+		}
+
+		/**
 		 * Get the correct email address to use
 		 * @since 1.1.2
 		 * @return Email address
@@ -372,7 +683,10 @@ if( ! class_exists( 'Plugin_Usage_Tracker') ) {
 		 * @since 1.0.0
 		 */
 		public function filter_action_links( $links ) {
-			// Always show the form if include_goodbye_form is true, regardless of tracking status
+			if ( ! $this->get_is_tracking_allowed() ) {
+				return $links;
+			}
+
 			if( isset( $links['deactivate'] ) && $this->include_goodbye_form ) {
 				$deactivation_link = $links['deactivate'];
 				// Insert an onClick action to allow form before deactivating
